@@ -1,6 +1,7 @@
 import {appName} from '../config'
 import {Record, List} from 'immutable'
-import {put, takeEvery} from 'redux-saga/effects'
+import {put, call, takeEvery} from 'redux-saga/effects'
+import {generateId} from './utils'
 
 /**
  * Constants
@@ -55,7 +56,7 @@ export function addPerson(person) {
  * */
 
 export function * addPersonSaga(action) {
-    const id = Date.now()
+    const id = yield call(generateId)
 
     const effect = put({
         type: ADD_PERSON,
