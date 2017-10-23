@@ -1,20 +1,15 @@
-import React, { Component } from 'react'
+import React from 'react'
 
-class ErrorField extends Component {
-    static propTypes = {
-
-    };
-
-    render() {
-        const {input, meta: {error, touched}, type, label} = this.props
-        const errorText = touched && error && <div style = {{color: 'red'}}>{error}</div>
-        return (
-            <div>
-                {label} <input {...input} type = {type} />
-                {errorText}
-            </div>
-        )
-    }
+function ErrorField(props) {
+    const {input, type, meta: {error, touched}} = props
+    const errorText = touched && error && <div style={{color: 'red'}}>{error}</div>
+    return (
+        <div>
+            <label>{input.name}</label>
+            <input {...input} type={type}/>
+            {errorText}
+        </div>
+    )
 }
 
 export default ErrorField
