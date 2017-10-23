@@ -19,7 +19,7 @@ class App extends Component {
                     <li><NavLink to='/people' activeStyle = {{color: 'red'}}>people</NavLink></li>
                 </ul>
                 <ProtectedRoute path = '/admin' component = {AdminPage}/>
-                <ProtectedRoute path="/people" component={PersonPage}/>
+                <ProtectedRoute path = '/people' component={PersonPage}/>
                 <Route path = '/auth' component = {AuthPage}/>
             </div>
         )

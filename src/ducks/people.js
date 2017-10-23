@@ -1,11 +1,13 @@
 import {appName} from '../config'
 import {Record, List} from 'immutable'
+import {put, takeEvery} from 'redux-saga/effects'
 
 /**
  * Constants
  * */
 export const moduleName = 'people'
 const prefix = `${appName}/${moduleName}`
+export const ADD_PERSON_REQUEST = `${prefix}/ADD_PERSON_REQUEST`
 export const ADD_PERSON = `${prefix}/ADD_PERSON`
 
 /**
@@ -42,12 +44,30 @@ export default function reducer(state = new ReducerState(), action) {
  * */
 
 export function addPerson(person) {
-    return (dispatch) => {
-        dispatch({
-            type: ADD_PERSON,
-            payload: {
-                person: {id: Date.now(), ...person}
-            }
-        })
+    return {
+        type: ADD_PERSON_REQUEST,
+        payload: { person }
     }
+}
+
+/**
+ *Sagas
+ * */
+
+export function * addPersonSaga(action) {
+    const id = Date.now()
+
+    const effect = put({
+        type: ADD_PERSON,
+        payload: { id, ...action.payload.person }
+    })
+
+    console.log('---', effect)
+
+    yield effect
+}
+
+export function * saga() {
+    console.log('---', 'saga up and running')
+    yield takeEvery(ADD_PERSON_REQUEST, addPersonSaga)
 }
