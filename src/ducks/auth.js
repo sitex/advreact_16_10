@@ -2,6 +2,7 @@ import {appName} from '../config'
 import {Record} from 'immutable'
 import firebase from 'firebase'
 import {createSelector} from 'reselect'
+import {call, put, all, take} from 'redux-saga/effects'
 
 /**
  * Constants
@@ -53,20 +54,9 @@ export const userSelector = createSelector(stateSelector, state => state.user)
  * Action Creators
  * */
 export function signUp(email, password) {
-    return (dispatch) => {
-        dispatch({
-            type: SIGN_UP_START
-        })
-
-        firebase.auth().createUserWithEmailAndPassword(email, password)
-            .then(user => dispatch({
-                type: SIGN_UP_SUCCESS,
-                payload: { user }
-            }))
-            .catch(error => dispatch({
-                type: SIGN_UP_ERROR,
-                payload: { error }
-            }))
+    return {
+        type: SIGN_UP_START,
+        payload: { email, password }
     }
 }
 
@@ -78,3 +68,36 @@ firebase.auth().onAuthStateChanged(user => {
         payload: { user }
     })
 })
+
+/**
+ * Sagas
+ **/
+
+export function * signUpSaga() {
+    const auth = firebase.auth()
+
+    while (true) {
+        const {payload} = yield take(SIGN_UP_START)
+
+        try {
+            const user = yield call([auth, auth.createUserWithEmailAndPassword], payload.email, payload.password)
+            //const user = apply(auth, createUserWithEmailAndPassword, [email, password])
+
+            yield put({
+                type: SIGN_UP_SUCCESS,
+                payload: {user}
+            })
+        } catch (error) {
+            yield put({
+                type: SIGN_UP_ERROR,
+                payload: {error}
+            })
+        }
+    }
+}
+
+export function * saga() {
+    yield all([
+        signUpSaga()
+    ])
+}
