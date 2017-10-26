@@ -103,14 +103,20 @@ export function* fetchAllSaga() {
 
     const snapshot = yield call([ref, ref.once], 'value')
 
-    console.log('---', snapshot)
-
     yield put({
         type: FETCH_ALL_SUCCESS,
         payload: snapshot.val()
     })
 }
 
+//lazy fetch FB
+/*
+firebase.database().ref('events')
+    .orderByKey()
+    .limitToFirst(10)
+    .startAt(lastUid)
+
+*/
 export function* saga() {
     yield all([
         takeEvery(FETCH_ALL_REQUEST, fetchAllSaga)
