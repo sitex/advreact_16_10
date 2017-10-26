@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import {connect} from 'react-redux'
-import {fetchAllEvents} from '../../ducks/events'
+import {fetchAllEvents, eventListSelector, loadedSelector, loadingSelector} from '../../ducks/events'
+import Loader from '../common/Loader'
 
 class EventsTable extends Component {
     static propTypes = {
@@ -13,12 +14,29 @@ class EventsTable extends Component {
     }
 
     render() {
+        if (this.props.loading) return <Loader />
         return (
-            <div>
-                <h1>Events</h1>
-            </div>
+            <table>
+                <tbody>
+                    {this.getRows()}
+                </tbody>
+            </table>
         )
     }
+
+    getRows = () => this.props.events.map(this.getRow)
+
+    getRow = (event) => (
+        <tr key = {event.uid}>
+            <td>{event.title}</td>
+            <td>{event.when}</td>
+            <td>{event.where}</td>
+        </tr>
+    )
 }
 
-export default connect(null, { fetchAllEvents })(EventsTable)
+export default connect((state) => ({
+    events: eventListSelector(state),
+    loading: loadingSelector(state),
+    loaded: loadedSelector(state)
+}), { fetchAllEvents })(EventsTable)
