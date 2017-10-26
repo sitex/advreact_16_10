@@ -3,6 +3,7 @@ import {Record} from 'immutable'
 import firebase from 'firebase'
 import {createSelector} from 'reselect'
 import {call, put, all, take} from 'redux-saga/effects'
+import {replace} from 'react-router-redux'
 
 /**
  * Constants
@@ -15,6 +16,8 @@ export const SIGN_UP_SUCCESS = `${prefix}/SIGN_UP_SUCCESS`
 export const SIGN_UP_ERROR = `${prefix}/SIGN_UP_ERROR`
 
 export const SIGN_IN_SUCCESS = `${prefix}/SIGN_IN_SUCCESS`
+export const SIGN_IN_REQUEST = `${prefix}/SIGN_IN_REQUEST`
+export const SIGN_IN_ERROR = `${prefix}/SIGN_IN_ERROR`
 
 /**
  * Reducer
@@ -60,6 +63,13 @@ export function signUp(email, password) {
     }
 }
 
+export function signIn(email, password) {
+    return {
+        type: SIGN_IN_REQUEST,
+        payload: {email, password}
+    }
+}
+
 firebase.auth().onAuthStateChanged(user => {
     if (!user) return
 
@@ -96,8 +106,39 @@ export function * signUpSaga() {
     }
 }
 
+export const signInSaga = function * () {
+    const auth = firebase.auth()
+
+    while (true) {
+        const action = yield take(SIGN_IN_REQUEST)
+
+        try {
+            yield call(
+                [auth, auth.signInWithEmailAndPassword],
+                action.payload.email, action.payload.password
+            )
+
+        } catch (error) {
+            yield put({
+                type: SIGN_IN_ERROR,
+                payload: {error}
+            })
+        }
+    }
+}
+
+export function * watchStatusChangeSaga() {
+    while (true) {
+        yield take(SIGN_IN_SUCCESS)
+
+        yield (put(replace('/people')))
+    }
+}
+
 export function * saga() {
     yield all([
-        signUpSaga()
+        signUpSaga(),
+        signInSaga(),
+        watchStatusChangeSaga()
     ])
 }
