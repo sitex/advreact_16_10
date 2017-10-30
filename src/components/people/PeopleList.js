@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import {connect} from 'react-redux'
 import {List} from 'react-virtualized'
 import {fetchAll, peopleListSelector} from '../../ducks/people'
+import PersonRow from './PersonRow'
 
 class PeopleList extends Component {
     static propTypes = {
@@ -24,11 +25,7 @@ class PeopleList extends Component {
         )
     }
 
-    rowRenderer = ({ index, key, style }) => {
-        const person = this.props.people[index]
-
-        return <div key = {key} style = {style}>{person.email}</div>
-    }
+    rowRenderer = ({ index, key, style }) => <PersonRow person = {this.props.people[index]} key = {key} style = {style}/>
 }
 
 export default connect(state => ({
