@@ -1,8 +1,10 @@
 import {appName} from '../config'
-import {Record, List} from 'immutable'
+import {Record, OrderedMap} from 'immutable'
 import {reset} from 'redux-form'
-import {put, call, takeEvery} from 'redux-saga/effects'
-import {generateId} from './utils'
+import {put, call, takeEvery, all} from 'redux-saga/effects'
+import firebase from 'firebase'
+import {createSelector} from 'reselect'
+import {fbToEntities} from './utils'
 
 /**
  * Constants
@@ -10,17 +12,24 @@ import {generateId} from './utils'
 export const moduleName = 'people'
 const prefix = `${appName}/${moduleName}`
 export const ADD_PERSON_REQUEST = `${prefix}/ADD_PERSON_REQUEST`
-export const ADD_PERSON = `${prefix}/ADD_PERSON`
+export const ADD_PERSON_SUCCESS = `${prefix}/ADD_PERSON_SUCCESS`
+export const ADD_PERSON_START = `${prefix}/ADD_PERSON_START`
+export const FETCH_ALL_REQUEST = `${prefix}/FETCH_ALL_REQUEST`
+export const FETCH_ALL_START = `${prefix}/FETCH_ALL_START`
+export const FETCH_ALL_SUCCESS = `${prefix}/FETCH_ALL_SUCCESS`
+
 
 /**
  * Reducer
  * */
 const ReducerState = Record({
-    entities: new List([])
+    entities: new OrderedMap({}),
+    loading: false,
+    loaded: false
 })
 
 const PersonRecord = Record({
-    id: null,
+    uid: null,
     firstName: null,
     lastName: null,
     email: null
@@ -30,8 +39,14 @@ export default function reducer(state = new ReducerState(), action) {
     const {type, payload} = action
 
     switch (type) {
-        case ADD_PERSON:
-            return state.update('entities', entities => entities.push(new PersonRecord(payload.person)))
+        case FETCH_ALL_SUCCESS:
+            return state
+                .set('loading', false)
+                .set('loaded', true)
+                .set('entities', fbToEntities(payload, PersonRecord))
+
+        case ADD_PERSON_SUCCESS:
+            return state.setIn(['entities', payload.uid], new PersonRecord(payload))
 
         default:
             return state
@@ -40,6 +55,8 @@ export default function reducer(state = new ReducerState(), action) {
 /**
  * Selectors
  * */
+export const stateSelector = state => state[moduleName]
+export const peopleListSelector = createSelector(stateSelector, state => state.entities.valueSeq().toArray())
 
 /**
  * Action Creators
@@ -52,26 +69,54 @@ export function addPerson(person) {
     }
 }
 
+export function fetchAll() {
+    return {
+        type: FETCH_ALL_REQUEST
+    }
+}
+
 /**
  *Sagas
  * */
 
 export function * addPersonSaga(action) {
-    const id = yield call(generateId)
 
-    const effect = put({
-        type: ADD_PERSON,
-        payload: { id, ...action.payload.person }
+    yield put({
+        type: ADD_PERSON_START,
+        payload: { ...action.payload.person }
     })
 
-    console.log('---', effect)
+    const peopleRef = firebase.database().ref('people')
 
-    yield effect
+    const { key } = yield call([peopleRef, peopleRef.push], action.payload.person)
+
+    yield put({
+        type: ADD_PERSON_SUCCESS,
+        payload: { uid: key , ...action.payload.person }
+    })
 
     yield put(reset('person'))
 }
 
+export function * fetchAllSaga() {
+    yield put({
+        type: FETCH_ALL_START
+    })
+
+    const peopleRef = firebase.database().ref('people')
+
+    const snapshot = yield call([peopleRef, peopleRef.once], 'value')
+
+    yield put({
+        type: FETCH_ALL_SUCCESS,
+        payload: snapshot.val()
+    })
+
+}
+
 export function * saga() {
-    console.log('---', 'saga up and running')
-    yield takeEvery(ADD_PERSON_REQUEST, addPersonSaga)
+    yield all([
+        takeEvery(ADD_PERSON_REQUEST, addPersonSaga),
+        takeEvery(FETCH_ALL_REQUEST, fetchAllSaga)
+    ])
 }
