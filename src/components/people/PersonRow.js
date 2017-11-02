@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import PropTypes from 'prop-types'
+import {DragSource} from 'react-dnd'
 
 class PersonRow extends Component {
     static propTypes = {
@@ -7,14 +7,27 @@ class PersonRow extends Component {
     };
 
     render() {
-        const {style, person} = this.props
+        const {style, person, connectDragSource, isDragging} = this.props
         return (
-            <div style = {style}>
-                <h2>{person.firstName} {person.lastName}</h2>
+            <div style = {{...style, opacity: isDragging ? 0.1 : 1}}>
+                {connectDragSource(<h2>{person.firstName} {person.lastName}</h2>)}
                 <h3>{person.email}</h3>
             </div>
         )
     }
 }
 
-export default PersonRow
+const spec = {
+    beginDrag(props) {
+        return {
+            id: props.person.uid
+        }
+    }
+}
+
+const collect = (connect, monitor) => ({
+    connectDragSource: connect.dragSource(),
+    isDragging: monitor.isDragging()
+})
+
+export default DragSource('person', spec, collect)(PersonRow)
