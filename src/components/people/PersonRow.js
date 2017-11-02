@@ -22,6 +22,10 @@ const spec = {
         return {
             id: props.person.uid
         }
+    },
+
+    endDrag() {
+        console.log('---', 'endDrag')
     }
 }
 
