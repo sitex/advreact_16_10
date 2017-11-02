@@ -1,10 +1,16 @@
 import React, { Component } from 'react'
 import {DragSource} from 'react-dnd'
+import {getEmptyImage} from 'react-dnd-html5-backend'
+import DragPreview from './PersonDragPreview'
 
 class PersonRow extends Component {
     static propTypes = {
 
     };
+
+    componentDidMount() {
+        this.props.connectPreview(getEmptyImage())
+    }
 
     render() {
         const {style, person, connectDragSource, isDragging} = this.props
@@ -20,7 +26,8 @@ class PersonRow extends Component {
 const spec = {
     beginDrag(props) {
         return {
-            id: props.person.uid
+            id: props.person.uid,
+            DragPreview
         }
     },
 
@@ -31,6 +38,7 @@ const spec = {
 
 const collect = (connect, monitor) => ({
     connectDragSource: connect.dragSource(),
+    connectPreview: connect.dragPreview(),
     isDragging: monitor.isDragging()
 })
 
