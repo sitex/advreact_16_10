@@ -20,6 +20,9 @@ export const FETCH_LAZY_SUCCESS = `${prefix}/FETCH_LAZY_SUCCESS`
 
 export const SELECT_EVENT = `${prefix}/SELECT_EVENT`
 
+export const DELETE_EVENT_REQUEST = `${prefix}/DELETE_EVENT_REQUEST`
+export const DELETE_EVENT_SUCCESS = `${prefix}/DELETE_EVENT_SUCCESS`
+
 
 /**
  * Reducer
@@ -64,6 +67,15 @@ export default function reducer(state = new ReducerRecord(), action) {
         case SELECT_EVENT:
             return state.update('selected', selected => selected.add(payload.uid))
 
+        case DELETE_EVENT_REQUEST:
+            return state.set('loading', true)
+
+        case DELETE_EVENT_SUCCESS:
+            return state
+                .set('loading', false)
+                .deleteIn(['entities', payload.uid])
+                .update('selected', selected => selected.remove(payload.uid))
+
         default:
             return state
     }
@@ -82,6 +94,8 @@ export const eventListSelector = createSelector(entitiesSelector, entities => en
 export const selectedEventsSelector = createSelector(entitiesSelector, selectionSelector, (entities, selection) =>
     selection.map(uid => entities.get(uid))
 )
+export const idSelector = (state, props) => props.uid
+export const eventSelector = createSelector(entitiesSelector, idSelector, (entities, id) => entities.get(id))
 
 /**
  * Action Creators
@@ -103,6 +117,13 @@ export function selectEvent(uid) {
 export function fetchLazy() {
     return {
         type: FETCH_LAZY_REQUEST
+    }
+}
+
+export function deleteEvent(uid) {
+    return {
+        type: DELETE_EVENT_REQUEST,
+        payload: {uid}
     }
 }
 
@@ -154,6 +175,21 @@ export const fetchLazySaga = function * () {
     }
 }
 
+export const deleteEventSaga = function * (action) {
+    const {payload} = action
+    const ref = firebase.database().ref(`events/${payload.uid}`)
+
+    try {
+        yield call([ref, ref.remove])
+
+        yield put({
+            type: DELETE_EVENT_SUCCESS,
+            payload
+        })
+    } catch (_) {
+
+    }
+}
 //lazy fetch FB
 /*
 firebase.database().ref('events')
@@ -165,6 +201,7 @@ firebase.database().ref('events')
 export function* saga() {
     yield all([
         takeEvery(FETCH_ALL_REQUEST, fetchAllSaga),
-        fetchLazySaga()
+        fetchLazySaga(),
+        takeEvery(DELETE_EVENT_REQUEST, deleteEventSaga)
     ])
 }
