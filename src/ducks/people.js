@@ -1,7 +1,8 @@
 import {appName} from '../config'
 import {Record, OrderedMap} from 'immutable'
 import {reset} from 'redux-form'
-import {put, call, takeEvery, all, select} from 'redux-saga/effects'
+import {put, call, takeEvery, all, select, fork, spawn, cancel, cancelled, race, take} from 'redux-saga/effects'
+import {delay, eventChannel} from 'redux-saga'
 import firebase from 'firebase'
 import {createSelector} from 'reselect'
 import {fbToEntities} from './utils'
@@ -144,10 +145,59 @@ export function * addEventToPersonSaga({ payload: { eventId, personId } }) {
     })
 }
 
+export const syncPeopleWithShortPollingSaga = function * () {
+    try {
+        while (true) {
+            console.log('---', 'fetching users');
+            yield call(fetchAllSaga)
+            yield delay(2000)
+        }
+    } finally {
+        if (yield cancelled()) {
+            console.log('---', 123, 'saga was cancelled')
+        }
+    }
+}
+
+export const cancelableSyncSaga = function * () {
+    const res = yield race({
+        sync: syncPeopleWithShortPollingSaga(),
+        timeout: delay(6000)
+    })
+/*
+    const task = yield fork(syncPeopleWithShortPollingSaga)
+    yield delay(6000)
+    yield cancel(task)
+*/
+}
+
+const createPeopleSocket = () => eventChannel(emit => {
+    const ref = firebase.database().ref('people')
+    const callback = data => emit({ data })
+
+    ref.on('value', callback)
+
+    return () => ref.off('value', callback)
+})
+
+export const realtimePeopleSyncSaga = function * () {
+    const chan = yield call(createPeopleSocket)
+
+    while (true) {
+        const { data } = yield take(chan)
+
+        yield put({
+            type: FETCH_ALL_SUCCESS,
+            payload: data.val()
+        })
+    }
+}
+
 export function * saga() {
+    yield spawn(realtimePeopleSyncSaga)
+
     yield all([
         takeEvery(ADD_PERSON_REQUEST, addPersonSaga),
-        takeEvery(FETCH_ALL_REQUEST, fetchAllSaga),
         takeEvery(ADD_EVENT_REQUEST, addEventToPersonSaga)
     ])
 }

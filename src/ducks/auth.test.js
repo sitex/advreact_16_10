@@ -89,7 +89,7 @@ it('should redirect', () => {
 
     expect(saga.next().value).toEqual(take(SIGN_IN_SUCCESS))
 
-    expect(saga.next().value).toEqual(put(replace('/events')))
+    expect(saga.next().value).toEqual(put(replace('/people')))
 })
 
 /**
