@@ -65,7 +65,10 @@ export default function reducer(state = new ReducerRecord(), action) {
                 .set('loaded', Object.keys(payload).length < 10)
 
         case SELECT_EVENT:
-            return state.update('selected', selected => selected.add(payload.uid))
+            return state.update('selected', selected => selected.has(payload.uid)
+                ? selected.remove(payload.uid)
+                : selected.add(payload.uid)
+            )
 
         case DELETE_EVENT_REQUEST:
             return state.set('loading', true)
