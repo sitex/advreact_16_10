@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import {DragSource} from 'react-dnd'
 import {getEmptyImage} from 'react-dnd-html5-backend'
 import DragPreview from './PersonDragPreview'
+import {Motion, spring} from 'react-motion'
 
 class PersonRow extends Component {
     static propTypes = {
@@ -13,12 +14,19 @@ class PersonRow extends Component {
     }
 
     render() {
-        const {style, person, connectDragSource, isDragging} = this.props
+        const {style, person, connectDragSource} = this.props
         return (
-            <div style = {{...style, opacity: isDragging ? 0.1 : 1}}>
-                {connectDragSource(<h2>{person.firstName} {person.lastName}</h2>)}
-                <h3>{person.email}</h3>
-            </div>
+            <Motion
+                defaultStyle={{opacity: 0}}
+                style={{opacity: spring(1)}}
+            >
+                {interpolatingStyle => (
+                    <div style = {{...style, ...interpolatingStyle}}>
+                        {connectDragSource(<h2>{person.firstName} {person.lastName}</h2>)}
+                        <h3>{person.email}</h3>
+                    </div>
+                )}
+            </Motion>
         )
     }
 }
