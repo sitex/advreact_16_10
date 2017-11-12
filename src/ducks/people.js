@@ -6,6 +6,7 @@ import {delay, eventChannel} from 'redux-saga'
 import firebase from 'firebase'
 import {createSelector} from 'reselect'
 import {fbToEntities} from './utils'
+import {LOCATION_CHANGE} from 'react-router-redux';
 
 /**
  * Constants
@@ -171,6 +172,20 @@ export const cancelableSyncSaga = function * () {
 */
 }
 
+export const cancelableRealtimePeopleSyncSaga = function * () {
+    let task
+
+    while (true) {
+        const {payload} = yield take(LOCATION_CHANGE)
+        if (payload.pathname.includes('people') || payload.pathname.includes('admin')) {
+            task = yield fork(realtimePeopleSyncSaga)
+
+        } else if (task) {
+            yield cancel(task)
+        }
+    }
+}
+
 const createPeopleSocket = () => eventChannel(emit => {
     const ref = firebase.database().ref('people')
     const callback = data => emit({ data })
@@ -183,18 +198,23 @@ const createPeopleSocket = () => eventChannel(emit => {
 export const realtimePeopleSyncSaga = function * () {
     const chan = yield call(createPeopleSocket)
 
-    while (true) {
+    try {
         const { data } = yield take(chan)
 
         yield put({
             type: FETCH_ALL_SUCCESS,
             payload: data.val()
         })
+    } finally {
+        if (yield cancelled()) {
+            yield call([chan, chan.close])
+            console.log('---', 'realtime saga was cancelled')
+        }
     }
 }
 
 export function * saga() {
-    yield spawn(realtimePeopleSyncSaga)
+    yield spawn(cancelableRealtimePeopleSyncSaga)
 
     yield all([
         takeEvery(ADD_PERSON_REQUEST, addPersonSaga),
